@@ -1,0 +1,13 @@
+# terraform.tfvars.example
+# Copy to terraform.tfvars and fill in your values.
+# Do NOT commit terraform.tfvars to git.
+
+aws_region     = "us-east-1"
+aws_account_id = "123456789012"
+cluster_name   = "ticket-selling-eks"
+github_org     = "your-github-username-or-org"
+github_repo    = "vscode-aws-dev-environment-setup"
+
+redis_url   = "rediss://<elasticache-endpoint>:6379"
+jwt_key     = "super-secret-jwt-key"
+stripe_key  = "sk_test_xxxxx"
