@@ -1,0 +1,171 @@
+---
+# ServiceAccount for the dashboard
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dashboard-sa
+  namespace: ticket-selling
+  annotations:
+    eks.amazonaws.com/role-arn: __DASHBOARD_IRSA_ROLE_ARN__
+---
+# ClusterRole — dashboard needs read access to deployments, pods, and KEDA ScaledObjects
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dashboard-reader
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["keda.sh"]
+    resources: ["scaledobjects", "triggerauthentications"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dashboard-reader-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: dashboard-reader
+subjects:
+  - kind: ServiceAccount
+    name: dashboard-sa
+    namespace: ticket-selling
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard
+  namespace: ticket-selling
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard
+  template:
+    metadata:
+      labels:
+        app: dashboard
+    spec:
+      serviceAccountName: dashboard-sa
+      containers:
+        - name: dashboard
+          image: __DASHBOARD_IMAGE__
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3007
+          env:
+            - name: AWS_REGION
+              value: "__AWS_REGION__"
+            - name: NAMESPACE
+              value: "ticket-selling"
+            - name: AMG_WORKSPACE_URL
+              value: "__AMG_WORKSPACE_URL__"
+            - name: SQS_AUTH_QUEUE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: SQS_AUTH_QUEUE_URL
+            - name: SQS_CLIENT_QUEUE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: SQS_CLIENT_QUEUE_URL
+            - name: SQS_TICKETS_QUEUE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: SQS_TICKETS_QUEUE_URL
+            - name: SQS_ORDERS_SERVICE_QUEUE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: SQS_ORDERS_SERVICE_QUEUE_URL
+            - name: SQS_ORDER_EVENTS_QUEUE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: SQS_ORDER_EVENTS_QUEUE_URL
+            - name: SQS_PAYMENT_EVENTS_QUEUE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: SQS_PAYMENT_EVENTS_QUEUE_URL
+            - name: SQS_EXPIRATION_QUEUE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: SQS_EXPIRATION_QUEUE_URL
+            - name: SQS_EXPIRATION_EVENTS_QUEUE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: SQS_EXPIRATION_EVENTS_QUEUE_URL
+          readinessProbe:
+            httpGet:
+              path: /api/scenarios
+              port: 3007
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/scenarios
+              port: 3007
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard
+  namespace: ticket-selling
+spec:
+  selector:
+    app: dashboard
+  ports:
+    - port: 80
+      targetPort: 3007
+      protocol: TCP
+  type: ClusterIP
+---
+# Ingress — separate ALB for the dashboard
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dashboard
+  namespace: ticket-selling
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /api/scenarios
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dashboard
+                port:
+                  number: 80

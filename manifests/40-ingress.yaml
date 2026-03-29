@@ -1,0 +1,71 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ticket-selling
+  namespace: ticket-selling
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /api/users
+            pathType: Prefix
+            backend:
+              service:
+                name: auth
+                port:
+                  number: 3000
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: auth
+                port:
+                  number: 3000
+          - path: /api/tickets
+            pathType: Prefix
+            backend:
+              service:
+                name: tickets
+                port:
+                  number: 3000
+          - path: /api/orders
+            pathType: Prefix
+            backend:
+              service:
+                name: orders
+                port:
+                  number: 3000
+          - path: /api/payments
+            pathType: Prefix
+            backend:
+              service:
+                name: payments
+                port:
+                  number: 3000
+          - path: /api/expirations
+            pathType: Prefix
+            backend:
+              service:
+                name: expiration
+                port:
+                  number: 3000
+          - path: /api/client
+            pathType: Prefix
+            backend:
+              service:
+                name: client
+                port:
+                  number: 3000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: client
+                port:
+                  number: 3000
