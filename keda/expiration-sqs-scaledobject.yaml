@@ -1,0 +1,29 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: expiration-sqs-scaler
+  namespace: ticket-selling
+spec:
+  scaleTargetRef:
+    name: expiration
+  minReplicaCount: 0
+  maxReplicaCount: 20
+  pollingInterval: 10
+  cooldownPeriod: 30
+  triggers:
+    - type: aws-sqs-queue
+      metadata:
+        queueURL: __SQS_EXPIRATION_QUEUE_URL__
+        awsRegion: __AWS_REGION__
+        queueLength: "5"
+      authenticationRef:
+        name: expiration-sqs-auth
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: expiration-sqs-auth
+  namespace: ticket-selling
+spec:
+  podIdentity:
+    provider: aws-eks
