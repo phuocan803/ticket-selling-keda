@@ -1,0 +1,42 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: tickets-dual-scaler
+  namespace: ticket-selling
+spec:
+  scaleTargetRef:
+    name: tickets
+  minReplicaCount: 1
+  maxReplicaCount: 20
+  pollingInterval: 15
+  cooldownPeriod: 60
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 180
+        scaleUp:
+          stabilizationWindowSeconds: 0
+  triggers:
+    - type: aws-sqs-queue
+      metadata:
+        queueURL: __SQS_TICKETS_QUEUE_URL__
+        awsRegion: __AWS_REGION__
+        queueLength: "5"
+      authenticationRef:
+        name: tickets-sqs-auth
+    - type: prometheus
+      metadata:
+        serverAddress: http://keda-sigv4.keda:80/workspaces/__AMP_WORKSPACE_ID__
+        metricName: tickets_http_rps
+        query: sum(rate(app_http_requests_total{k8s_namespace="ticket-selling",k8s_pod=~"tickets-.*"}[2m]))
+        threshold: "20"
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: tickets-sqs-auth
+  namespace: ticket-selling
+spec:
+  podIdentity:
+    provider: aws-eks

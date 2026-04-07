@@ -1,0 +1,42 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: expiration-dual-scaler
+  namespace: ticket-selling
+spec:
+  scaleTargetRef:
+    name: expiration
+  minReplicaCount: 0
+  maxReplicaCount: 20
+  pollingInterval: 15
+  cooldownPeriod: 60
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 300
+        scaleUp:
+          stabilizationWindowSeconds: 0
+  triggers:
+    - type: aws-sqs-queue
+      metadata:
+        queueURL: __SQS_EXPIRATION_QUEUE_URL__
+        awsRegion: __AWS_REGION__
+        queueLength: "5"
+      authenticationRef:
+        name: expiration-sqs-auth
+    - type: prometheus
+      metadata:
+        serverAddress: http://keda-sigv4.keda:80/workspaces/__AMP_WORKSPACE_ID__
+        metricName: expiration_http_rps
+        query: sum(rate(app_http_requests_total{k8s_namespace="ticket-selling",k8s_pod=~"expiration-.*"}[2m]))
+        threshold: "10"
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: expiration-sqs-auth
+  namespace: ticket-selling
+spec:
+  podIdentity:
+    provider: aws-eks
