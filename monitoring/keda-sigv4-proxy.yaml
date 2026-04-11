@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keda-sigv4
+  namespace: keda
+  labels:
+    app: keda-sigv4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keda-sigv4
+  template:
+    metadata:
+      labels:
+        app: keda-sigv4
+    spec:
+      serviceAccountName: keda-operator
+      containers:
+        - name: aws-sigv4-proxy
+          image: public.ecr.aws/aws-observability/aws-sigv4-proxy:1.0
+          args:
+            - --name
+            - aps
+            - --region
+            - __AWS_REGION__
+            - --host
+            - aps-workspaces.__AWS_REGION__.amazonaws.com
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keda-sigv4
+  namespace: keda
+spec:
+  selector:
+    app: keda-sigv4
+  ports:
+    - port: 80
+      targetPort: 8080

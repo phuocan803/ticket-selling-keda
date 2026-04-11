@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: adot
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: adot-collector
+  namespace: adot
+  labels:
+    app: aws-adot
+    component: adot-collector
+data:
+  adot-collector-config: |
+    receivers:
+      prometheus:
+        config:
+          global:
+            scrape_interval: 15s
+            scrape_timeout: 10s
+          scrape_configs:
+            - job_name: kubernetes-pods
+              kubernetes_sd_configs:
+                - role: pod
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+                  action: keep
+                  regex: true
+                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+                  action: replace
+                  target_label: __metrics_path__
+                  regex: (.+)
+                - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+                  action: replace
+                  regex: ([^:]+)(?::\d+)?;(\d+)
+                  replacement: $${1}:$${2}
+                  target_label: __address__
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: replace
+                  target_label: k8s_namespace
+                - source_labels: [__meta_kubernetes_pod_name]
+                  action: replace
+                  target_label: k8s_pod
+                - source_labels: [__meta_kubernetes_pod_label_app]
+                  action: keep
+                  regex: client|orders|payments|expiration|tickets|auth
+    processors:
+      batch/metrics:
+        timeout: 10s
+    exporters:
+      prometheusremotewrite:
+        endpoint: __AMP_REMOTE_WRITE_ENDPOINT__
+        auth:
+          authenticator: sigv4auth
+      logging:
+        loglevel: warn
+    extensions:
+      health_check:
+      sigv4auth:
+        region: __AWS_REGION__
+    service:
+      extensions: [health_check, sigv4auth]
+      pipelines:
+        metrics:
+          receivers: [prometheus]
+          processors: [batch/metrics]
+          exporters: [prometheusremotewrite]
