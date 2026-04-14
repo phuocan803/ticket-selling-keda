@@ -1,0 +1,211 @@
+{
+    "uid": "service-metrics",
+    "title": "Service HTTP Metrics",
+    "tags": [
+        "amp",
+        "tickets",
+        "services"
+    ],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "refresh": "30s",
+    "time": {
+        "from": "now-1h",
+        "to": "now"
+    },
+    "templating": {
+        "list": [
+            {
+                "name": "service",
+                "label": "Service",
+                "type": "query",
+                "query": "label_values(app_http_requests_total{k8s_namespace=\"ticket-selling\"}, k8s_pod)",
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                },
+                "refresh": 2
+            }
+        ]
+    },
+    "panels": [
+        {
+            "id": 1,
+            "title": "HTTP Requests per Second — All Services",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 10,
+                "w": 24,
+                "x": 0,
+                "y": 0
+            },
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "lineWidth": 2,
+                        "fillOpacity": 5
+                    },
+                    "unit": "reqps"
+                }
+            },
+            "targets": [
+                {
+                    "expr": "sum by (k8s_pod) (rate(app_http_requests_total{k8s_namespace=\"ticket-selling\"}[2m]))",
+                    "legendFormat": "{{k8s_pod}}"
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "title": "Auth RPS",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 0,
+                "y": 10
+            },
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+            },
+            "targets": [
+                {
+                    "expr": "sum(rate(app_http_requests_total{k8s_namespace=\"ticket-selling\",k8s_pod=~\"auth-.*\"}[2m]))",
+                    "legendFormat": "Auth RPS"
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "title": "Tickets RPS",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 4,
+                "y": 10
+            },
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+            },
+            "targets": [
+                {
+                    "expr": "sum(rate(app_http_requests_total{k8s_namespace=\"ticket-selling\",k8s_pod=~\"tickets-.*\"}[2m]))",
+                    "legendFormat": "Tickets RPS"
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "title": "Orders RPS",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 8,
+                "y": 10
+            },
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+            },
+            "targets": [
+                {
+                    "expr": "sum(rate(app_http_requests_total{k8s_namespace=\"ticket-selling\",k8s_pod=~\"orders-.*\"}[2m]))",
+                    "legendFormat": "Orders RPS"
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "title": "Payments RPS",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 12,
+                "y": 10
+            },
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+            },
+            "targets": [
+                {
+                    "expr": "sum(rate(app_http_requests_total{k8s_namespace=\"ticket-selling\",k8s_pod=~\"payments-.*\"}[2m]))",
+                    "legendFormat": "Payments RPS"
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "title": "HTTP Error Rate",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 14
+            },
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "lineWidth": 2
+                    },
+                    "unit": "percentunit",
+                    "min": 0,
+                    "max": 1,
+                    "color": {
+                        "mode": "fixed",
+                        "fixedColor": "red"
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "expr": "sum by (k8s_pod) (rate(app_http_requests_total{k8s_namespace=\"ticket-selling\",status=~\"5..\"}[2m])) / sum by (k8s_pod) (rate(app_http_requests_total{k8s_namespace=\"ticket-selling\"}[2m]))",
+                    "legendFormat": "{{k8s_pod}} errors"
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "title": "Response Latency p99",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 14
+            },
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "lineWidth": 2
+                    },
+                    "unit": "ms"
+                }
+            },
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.99, sum by (le, k8s_pod) (rate(app_http_request_duration_ms_bucket{k8s_namespace=\"ticket-selling\"}[2m])))",
+                    "legendFormat": "{{k8s_pod}} p99"
+                }
+            ]
+        }
+    ]
+}

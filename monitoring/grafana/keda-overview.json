@@ -1,0 +1,120 @@
+{
+  "uid": "keda-overview",
+  "title": "KEDA Overview",
+  "tags": ["keda", "autoscaling"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "namespace",
+        "label": "Namespace",
+        "type": "constant",
+        "current": { "value": "ticket-selling" },
+        "hide": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Ready Replicas — All Services",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "unit": "short",
+          "min": 0
+        }
+      },
+      "targets": [
+        {
+          "expr": "kube_deployment_status_replicas_ready{namespace=\"ticket-selling\"}",
+          "legendFormat": "{{deployment}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Desired vs Ready — Auth",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "kube_deployment_status_replicas_ready{namespace=\"ticket-selling\",deployment=\"auth\"}",
+          "legendFormat": "Ready"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Desired vs Ready — Tickets",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "kube_deployment_status_replicas_ready{namespace=\"ticket-selling\",deployment=\"tickets\"}",
+          "legendFormat": "Ready"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Desired vs Ready — Orders",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "kube_deployment_status_replicas_ready{namespace=\"ticket-selling\",deployment=\"orders\"}",
+          "legendFormat": "Ready"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Desired vs Ready — Payments",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "kube_deployment_status_replicas_ready{namespace=\"ticket-selling\",deployment=\"payments\"}",
+          "legendFormat": "Ready"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Desired vs Ready — Expiration",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "kube_deployment_status_replicas_ready{namespace=\"ticket-selling\",deployment=\"expiration\"}",
+          "legendFormat": "Ready"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Desired vs Ready — Client",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "kube_deployment_status_replicas_ready{namespace=\"ticket-selling\",deployment=\"client\"}",
+          "legendFormat": "Ready"
+        }
+      ]
+    }
+  ]
+}

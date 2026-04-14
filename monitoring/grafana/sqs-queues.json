@@ -1,0 +1,57 @@
+{
+  "uid": "sqs-queues",
+  "title": "SQS Queue Depths",
+  "tags": ["sqs", "keda"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Approximate Number of Messages Visible",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 8 },
+          "unit": "short",
+          "min": 0
+        }
+      },
+      "targets": [
+        {
+          "expr": "aws_sqs_approximate_number_of_messages_visible_maximum{queue_name=~\"ticket-.*\"}",
+          "legendFormat": "{{queue_name}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Messages Sent Rate (5m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "rate(aws_sqs_number_of_messages_sent_sum{queue_name=~\"ticket-.*\"}[5m])",
+          "legendFormat": "{{queue_name}} sent/s"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Messages Deleted Rate (5m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "rate(aws_sqs_number_of_messages_deleted_sum{queue_name=~\"ticket-.*\"}[5m])",
+          "legendFormat": "{{queue_name}} deleted/s"
+        }
+      ]
+    }
+  ]
+}
